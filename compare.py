@@ -13,6 +13,10 @@ import random
 from engine import (HUMAN, COMPUTER, new_board, get_valid_moves,
                     drop_piece, is_full, get_scores)
 
+from heuristic import h1, h2, h3
+
+HEURISTICS = {"h1": h1, "h2": h2, "h3": h3}
+
 # Use B's AI when it exists; until then fall back to a random-move stub.
 # `heuristic` is a function board -> number; `player` is the piece the
 # search plays for (needed because both sides are AIs here).
