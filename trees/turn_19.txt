@@ -1,5 +1,28 @@
-[MAX] root                                  a=539 b=+inf          value=539
-  [MIN] col=6 (comp)                        a=-inf b=539          value=539
-    [MAX] col=6 (human)                     a=539 b=+inf          value=539
-      [MIN] col=6 (comp)                    a=-inf b=539          value=539
-        [LEAF] col=6 (human)                a=-inf b=+inf         h=539
+[MAX] root                                  a=8000 b=+inf         value=8000
+  [MIN] col=2 (comp)                        a=-inf b=5000         value=5000
+    [MAX] col=2 (human)                     a=5000 b=+inf         value=5000
+      [MIN] col=6 (comp)                    a=-inf b=5000         value=5000
+        [MAX] col=6 (human)                 a=5000 b=+inf         value=5000
+          [FINAL] col=6 (comp)              a=-inf b=+inf         score=5000
+    [MAX] col=6 (human)                     a=6000 b=5000         value=6000
+      [MIN] col=2 (comp)                    a=-inf b=5000         value=6000
+        [MAX] col=6 (human)                 a=6000 b=5000         value=6000
+          [FINAL] col=6 (comp)              a=-inf b=5000         score=6000
+      [MIN] col=6 (comp)                    a=6000 b=5000         PRUNED
+  [MIN] col=6 (comp)                        a=5000 b=8000         value=8000
+    [MAX] col=2 (human)                     a=8000 b=+inf         value=8000
+      [MIN] col=2 (comp)                    a=5000 b=8000         value=8000
+        [MAX] col=6 (human)                 a=8000 b=+inf         value=8000
+          [FINAL] col=6 (comp)              a=5000 b=+inf         score=8000
+      [MIN] col=6 (comp)                    a=8000 b=5000         value=5000
+        [MAX] col=2 (human)                 a=8000 b=+inf         value=5000
+          [FINAL] col=6 (comp)              a=8000 b=+inf         score=5000
+        [MAX] col=6 (human)                 a=8000 b=5000         PRUNED
+    [MAX] col=6 (human)                     a=8000 b=8000         value=8000
+      [MIN] col=2 (comp)                    a=5000 b=5000         value=5000
+        [MAX] col=2 (human)                 a=5000 b=8000         value=5000
+          [FINAL] col=6 (comp)              a=5000 b=8000         score=5000
+        [MAX] col=6 (human)                 a=5000 b=5000         PRUNED
+      [MIN] col=6 (comp)                    a=5000 b=8000         value=8000
+        [MAX] col=2 (human)                 a=8000 b=8000         value=8000
+          [FINAL] col=2 (comp)              a=5000 b=8000         score=8000
