@@ -1,0 +1,10 @@
+[MAX] root                                  a=583 b=+inf          value=583
+  [MIN] col=5 (comp)                        a=-inf b=583          value=583
+    [MAX] col=6 (human)                     a=583 b=+inf          value=583
+      [MIN] col=6 (comp)                    a=-inf b=583          value=583
+        [LEAF] col=6 (human)                a=-inf b=+inf         h=583
+  [MIN] col=6 (comp)                        a=583 b=577           value=577
+    [MAX] col=5 (human)                     a=583 b=+inf          value=577
+      [MIN] col=6 (comp)                    a=583 b=577           value=577
+        [LEAF] col=6 (human)                a=583 b=+inf          h=577
+    [MAX] col=6 (human)                     a=583 b=577           PRUNED

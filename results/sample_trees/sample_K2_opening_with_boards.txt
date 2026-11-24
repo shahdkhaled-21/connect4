@@ -1,0 +1,150 @@
+Sample 2 - same position, board shown under every leaf
+K = 2, computer (C = MAX) to move; human = H = MIN. Columns are numbered 1..7.
+Board before the computer's move (row 1 = top):
+
+  . . . . . . .
+  . . . . . . .
+  . . . . . . .
+  . . . . . . .
+  . . . . . . .
+  . . . H . . .
+
+Computer chooses column 4 (root value -18); 21 nodes visited, 36 branches cut.
+Format: [kind] col=<column played> (<who played it>)  a=alpha b=beta  value / h (heuristic) / score (full board) / PRUNED
+kind = who moves NEXT from that node.
+----------------------------------------------------------------------------------------------------
+[MAX] root                                  a=-18 b=+inf          value=-18
+  [MIN] col=4 (comp)                        a=-inf b=-18          value=-18
+    [LEAF] col=4 (human)                    a=-inf b=+inf         h=-18
+        . . . . . . .
+        . . . . . . .
+        . . . . . . .
+        . . . H . . .
+        . . . C . . .
+        . . . H . . .
+    [LEAF] col=3 (human)                    a=-inf b=-18          h=-17
+        . . . . . . .
+        . . . . . . .
+        . . . . . . .
+        . . . . . . .
+        . . . C . . .
+        . . H H . . .
+    [LEAF] col=5 (human)                    a=-inf b=-18          h=-17
+        . . . . . . .
+        . . . . . . .
+        . . . . . . .
+        . . . . . . .
+        . . . C . . .
+        . . . H H . .
+    [LEAF] col=2 (human)                    a=-inf b=-18          h=-10
+        . . . . . . .
+        . . . . . . .
+        . . . . . . .
+        . . . . . . .
+        . . . C . . .
+        . H . H . . .
+    [LEAF] col=6 (human)                    a=-inf b=-18          h=-10
+        . . . . . . .
+        . . . . . . .
+        . . . . . . .
+        . . . . . . .
+        . . . C . . .
+        . . . H . H .
+    [LEAF] col=1 (human)                    a=-inf b=-18          h=-3
+        . . . . . . .
+        . . . . . . .
+        . . . . . . .
+        . . . . . . .
+        . . . C . . .
+        H . . H . . .
+    [LEAF] col=7 (human)                    a=-inf b=-18          h=-3
+        . . . . . . .
+        . . . . . . .
+        . . . . . . .
+        . . . . . . .
+        . . . C . . .
+        . . . H . . H
+  [MIN] col=3 (comp)                        a=-18 b=-27           value=-27
+    [LEAF] col=4 (human)                    a=-18 b=+inf          h=-27
+        . . . . . . .
+        . . . . . . .
+        . . . . . . .
+        . . . . . . .
+        . . . H . . .
+        . . C H . . .
+    [MAX] col=3 (human)                     a=-18 b=-27           PRUNED
+    [MAX] col=5 (human)                     a=-18 b=-27           PRUNED
+    [MAX] col=2 (human)                     a=-18 b=-27           PRUNED
+    [MAX] col=6 (human)                     a=-18 b=-27           PRUNED
+    [MAX] col=1 (human)                     a=-18 b=-27           PRUNED
+    [MAX] col=7 (human)                     a=-18 b=-27           PRUNED
+  [MIN] col=5 (comp)                        a=-18 b=-27           value=-27
+    [LEAF] col=4 (human)                    a=-18 b=+inf          h=-27
+        . . . . . . .
+        . . . . . . .
+        . . . . . . .
+        . . . . . . .
+        . . . H . . .
+        . . . H C . .
+    [MAX] col=3 (human)                     a=-18 b=-27           PRUNED
+    [MAX] col=5 (human)                     a=-18 b=-27           PRUNED
+    [MAX] col=2 (human)                     a=-18 b=-27           PRUNED
+    [MAX] col=6 (human)                     a=-18 b=-27           PRUNED
+    [MAX] col=1 (human)                     a=-18 b=-27           PRUNED
+    [MAX] col=7 (human)                     a=-18 b=-27           PRUNED
+  [MIN] col=2 (comp)                        a=-18 b=-31           value=-31
+    [LEAF] col=4 (human)                    a=-18 b=+inf          h=-31
+        . . . . . . .
+        . . . . . . .
+        . . . . . . .
+        . . . . . . .
+        . . . H . . .
+        . C . H . . .
+    [MAX] col=3 (human)                     a=-18 b=-31           PRUNED
+    [MAX] col=5 (human)                     a=-18 b=-31           PRUNED
+    [MAX] col=2 (human)                     a=-18 b=-31           PRUNED
+    [MAX] col=6 (human)                     a=-18 b=-31           PRUNED
+    [MAX] col=1 (human)                     a=-18 b=-31           PRUNED
+    [MAX] col=7 (human)                     a=-18 b=-31           PRUNED
+  [MIN] col=6 (comp)                        a=-18 b=-31           value=-31
+    [LEAF] col=4 (human)                    a=-18 b=+inf          h=-31
+        . . . . . . .
+        . . . . . . .
+        . . . . . . .
+        . . . . . . .
+        . . . H . . .
+        . . . H . C .
+    [MAX] col=3 (human)                     a=-18 b=-31           PRUNED
+    [MAX] col=5 (human)                     a=-18 b=-31           PRUNED
+    [MAX] col=2 (human)                     a=-18 b=-31           PRUNED
+    [MAX] col=6 (human)                     a=-18 b=-31           PRUNED
+    [MAX] col=1 (human)                     a=-18 b=-31           PRUNED
+    [MAX] col=7 (human)                     a=-18 b=-31           PRUNED
+  [MIN] col=1 (comp)                        a=-18 b=-35           value=-35
+    [LEAF] col=4 (human)                    a=-18 b=+inf          h=-35
+        . . . . . . .
+        . . . . . . .
+        . . . . . . .
+        . . . . . . .
+        . . . H . . .
+        C . . H . . .
+    [MAX] col=3 (human)                     a=-18 b=-35           PRUNED
+    [MAX] col=5 (human)                     a=-18 b=-35           PRUNED
+    [MAX] col=2 (human)                     a=-18 b=-35           PRUNED
+    [MAX] col=6 (human)                     a=-18 b=-35           PRUNED
+    [MAX] col=1 (human)                     a=-18 b=-35           PRUNED
+    [MAX] col=7 (human)                     a=-18 b=-35           PRUNED
+  [MIN] col=7 (comp)                        a=-18 b=-35           value=-35
+    [LEAF] col=4 (human)                    a=-18 b=+inf          h=-35
+        . . . . . . .
+        . . . . . . .
+        . . . . . . .
+        . . . . . . .
+        . . . H . . .
+        . . . H . . C
+    [MAX] col=3 (human)                     a=-18 b=-35           PRUNED
+    [MAX] col=5 (human)                     a=-18 b=-35           PRUNED
+    [MAX] col=2 (human)                     a=-18 b=-35           PRUNED
+    [MAX] col=6 (human)                     a=-18 b=-35           PRUNED
+    [MAX] col=1 (human)                     a=-18 b=-35           PRUNED
+    [MAX] col=7 (human)                     a=-18 b=-35           PRUNED

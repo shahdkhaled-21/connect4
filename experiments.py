@@ -10,8 +10,11 @@ import csv
 import os
 import random
 
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+RESULTS_DIR = os.path.join(BASE_DIR, "results")     
+
 from engine import HUMAN, COMPUTER, new_board, get_valid_moves, drop_piece, is_full
-from main import choose_move       # B's AI if ai.py exists, otherwise the random stub
+from ai import choose_move
 
 
 def play_game(K, use_pruning=True, seed=0):
@@ -58,7 +61,7 @@ def run_experiments(K_values=range(1, 7), no_prune_max_K=5, seed=0):
     return all_rows
 
 
-def save_csv(rows, path="results/experiments_raw.csv"):
+def save_csv(rows, path=os.path.join(RESULTS_DIR, "experiments_raw.csv")):
     """Write the raw rows (one per AI move) to a CSV file, creating the folder if needed."""
     os.makedirs(os.path.dirname(path), exist_ok=True)
     with open(path, "w", newline="") as f:
@@ -101,7 +104,7 @@ def print_summary(summary):
               f"{s['avg_time']:>13.4f} {s['max_time']:>13.4f}")
 
 
-def save_summary_csv(summary, path="results/experiments_summary.csv"):
+def save_summary_csv(summary, path=os.path.join(RESULTS_DIR, "experiments_summary.csv")):
     """Write the summary table to a CSV file (for the report and the charts)."""
     os.makedirs(os.path.dirname(path), exist_ok=True)
     with open(path, "w", newline="") as f:
@@ -109,7 +112,7 @@ def save_summary_csv(summary, path="results/experiments_summary.csv"):
         writer.writeheader()
         writer.writerows(summary)
 
-def make_charts(summary, out_dir="results"):
+def make_charts(summary, out_dir=RESULTS_DIR):
     """
     Draw two charts from the summary and save them as PNG files:
     average nodes per move vs K, and average time per move vs K,

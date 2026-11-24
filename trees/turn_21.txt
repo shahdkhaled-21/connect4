@@ -1,0 +1,2 @@
+[MAX] root                                  a=0 b=+inf            value=0
+  [FINAL] col=7 (comp)                      a=-inf b=+inf         score=0

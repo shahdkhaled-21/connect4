@@ -1,4 +1,8 @@
 """
+gui.py - Pygame GUI: human vs. minimax AI, with live AI stats and a toggleable
+minimax-tree panel (scrollable, collapsible, chosen path highlighted, pruned
+nodes greyed out). Keys: T = show/hide tree, R = play again, Esc = quit.
+
 Layout:
     1. Scoreboard strip with floating player capsules & turn indicators.
     2. Hover & drop zone with column spotlight and smooth floating disc.
@@ -11,24 +15,32 @@ Layout:
 """
 
 import math
+import threading
+
 import pygame
 
-from main import choose_move
-from engine import (ROWS, COLS, EMPTY, HUMAN, COMPUTER, new_board,
+from ai import choose_move
+from engine import (ROWS, COLS, EMPTY, HUMAN, COMPUTER, new_board, four_cells,
                     get_valid_moves, drop_piece, get_scores, is_full, winner)
+from tree import fmt_bound, node_label, node_tail
+from tree_view import default_expanded, expand_all, principal_path, visible_rows
 
 # ---------- Layout & Geometry ----------
-SQUARE = 100                          # pixel size of one cell
+SQUARE = 80                           # pixel size of one cell
 PAD_X = 24                            # horizontal margin around the board
-PAD_BOTTOM = 24                       # bottom margin
 SCORE_H = 68                          # height of the top scoreboard bar
 HOVER_H = SQUARE                      # height of hover guide zone
 TOP = SCORE_H + HOVER_H               # top coordinate of the board
 HOVER_Y = SCORE_H + HOVER_H // 2      # resting vertical center for hover disc
 RADIUS = SQUARE // 2 - 9              # radius of a hole / disc
 WIDTH = COLS * SQUARE + 2 * PAD_X
-HEIGHT = TOP + ROWS * SQUARE + PAD_BOTTOM
 BOARD_RECT = pygame.Rect(PAD_X, TOP, COLS * SQUARE, ROWS * SQUARE)
+STATS_H = 86                          # height of the AI-stats strip under the board
+STATS_RECT = pygame.Rect(PAD_X, BOARD_RECT.bottom + 12, WIDTH - 2 * PAD_X, STATS_H)
+HEIGHT = STATS_RECT.bottom + 14
+PANEL_W = 560                         # width of the tree panel (added to the right)
+PANEL_RECT = pygame.Rect(WIDTH, 0, PANEL_W, HEIGHT)
+TREE_BUTTON = pygame.Rect(STATS_RECT.right - 100, STATS_RECT.y + 12, 88, 32)
 
 # ---------- Palette: Sleek Midnight Glass ----------
 BG_TOP = (18, 22, 44)                 # midnight indigo
@@ -45,6 +57,9 @@ RUBY_RED = (235, 52, 82)              # Human disc primary
 AMBER_GOLD = (250, 188, 38)           # Computer disc primary
 TEXT_WHITE = (242, 245, 255)          # primary text
 TEXT_MUTED = (145, 155, 190)          # secondary text
+PRUNED_GREY = (88, 98, 128)           # greyed-out (pruned) tree rows
+LEAF_GREEN = (120, 205, 150)          # heuristic leaves
+FINAL_BLUE = (140, 195, 255)          # exact (full-board) leaves
 
 DISC_COLORS = {HUMAN: RUBY_RED, COMPUTER: AMBER_GOLD}
 
@@ -221,27 +236,33 @@ def draw_scoreboard(screen, board, font, small_font, human_turn, K):
     score_surf = font.render(f"YOU  {human_fours}", True, TEXT_WHITE)
     screen.blit(score_surf, (dot_x + 16, mid_y - score_surf.get_height() // 2))
 
-    # --- Center Capsule: Turn / Depth Status ---
-    center_w, center_h = 140, 30
+    # --- Center Capsule: turn status, with K underneath ---
+    center_w, center_h = 190, 30
     center_x = (WIDTH - center_w) // 2
-    center_y = mid_y - center_h // 2
+    center_y = mid_y - 8 - center_h // 2
     center_rect = pygame.Rect(center_x, center_y, center_w, center_h)
 
     pygame.draw.rect(screen, (16, 20, 42), center_rect, border_radius=15)
     pygame.draw.rect(screen, (40, 50, 88), center_rect, width=1, border_radius=15)
 
+    dots = ""
     if is_full(board):
-        status_txt = "GAME OVER"
-        status_col = TEXT_WHITE
+        status_txt, status_col = "GAME OVER", TEXT_WHITE
     elif human_turn:
-        status_txt = "YOUR TURN"
-        status_col = RUBY_RED
+        status_txt, status_col = "YOUR TURN", RUBY_RED
     else:
-        status_txt = "AI THINKING..."
-        status_col = AMBER_GOLD
+        status_txt, status_col = "AI THINKING", AMBER_GOLD
+        dots = "." * (1 + (pygame.time.get_ticks() // 350) % 3)
 
     status_surf = small_font.render(status_txt, True, status_col)
-    screen.blit(status_surf, status_surf.get_rect(center=center_rect.center))
+    status_rect = status_surf.get_rect(center=center_rect.center)
+    screen.blit(status_surf, status_rect)
+    if dots:                                # dots hang off the right edge: no jitter
+        screen.blit(small_font.render(dots, True, status_col),
+                    (status_rect.right + 1, status_rect.y))
+
+    k_surf = small_font.render(f"search depth K = {K}", True, TEXT_MUTED)
+    screen.blit(k_surf, k_surf.get_rect(center=(WIDTH // 2, mid_y + 17)))
 
     # --- Right Pill: Computer AI ---
     comp_x = WIDTH - PAD_X - pill_w
@@ -264,7 +285,7 @@ def draw_scoreboard(screen, board, font, small_font, human_turn, K):
 
 
 def draw_game(screen, board, background, overlay, discs, hover_x=None, hover_player=HUMAN,
-              falling=None, hovered_col=None):
+              falling=None, hovered_col=None, highlight=()):
     """Draw one complete frame of the game in layered order."""
     # 1. Background
     screen.blit(background, (0, 0))
@@ -298,6 +319,8 @@ def draw_game(screen, board, background, overlay, discs, hover_x=None, hover_pla
             if p != EMPTY:
                 x, y = cell_center(r, c)
                 screen.blit(discs[p], (x - RADIUS, y - RADIUS))
+                if (r, c) in highlight:     # disc is part of a connected-four
+                    pygame.draw.circle(screen, (255, 255, 255), (x, y), RADIUS - 2, 3)
 
     # 6. Mid-drop disc with physics
     if falling is not None:
@@ -308,55 +331,30 @@ def draw_game(screen, board, background, overlay, discs, hover_x=None, hover_pla
     screen.blit(overlay, BOARD_RECT.topleft)
 
 
-def draw_game_over(screen, board, big_font, font, small_font):
-    """Display a sleek frosted glass modal dialog with game results and rematch hints."""
+def draw_game_over(screen, board, font, small_font):
+    """
+    Compact result banner in the strip above the board (the board itself stays
+    fully visible, with every connected-four highlighted).
+    """
     human, computer = get_scores(board)
     w = winner(board)
 
     if w == HUMAN:
-        title, accent = "VICTORY!", RUBY_RED
-        subtitle = "Congratulations! You outplayed the AI."
+        title, accent = "VICTORY! You outplayed the AI", RUBY_RED
     elif w == COMPUTER:
-        title, accent = "AI WINS!", AMBER_GOLD
-        subtitle = "Good game! The computer took this round."
+        title, accent = "AI WINS this round", AMBER_GOLD
     else:
-        title, accent = "IT'S A DRAW!", (110, 180, 255)
-        subtitle = "An equally matched battle."
+        title, accent = "IT'S A DRAW", (110, 180, 255)
 
-    # Semi-transparent dark blur backdrop
-    dim = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
-    dim.fill((5, 8, 18, 195))
-    screen.blit(dim, (0, 0))
+    card = pygame.Rect(PAD_X, SCORE_H + 6, WIDTH - 2 * PAD_X, HOVER_H - 12)
+    pygame.draw.rect(screen, (20, 26, 54), card, border_radius=18)
+    pygame.draw.rect(screen, accent, card, width=3, border_radius=18)
 
-    # Modal Card
-    card_w, card_h = 520, 290
-    card = pygame.Rect((WIDTH - card_w) // 2, (HEIGHT - card_h) // 2, card_w, card_h)
-
-    # Card background & glowing border
-    pygame.draw.rect(screen, (20, 26, 54), card, border_radius=24)
-    pygame.draw.rect(screen, accent, card, width=3, border_radius=24)
-
-    # Header title
-    title_surf = big_font.render(title, True, accent)
-    screen.blit(title_surf, title_surf.get_rect(center=(WIDTH // 2, card.top + 55)))
-
-    # Subtitle
-    sub_surf = small_font.render(subtitle, True, TEXT_MUTED)
-    screen.blit(sub_surf, sub_surf.get_rect(center=(WIDTH // 2, card.top + 98)))
-
-    # Score display box
-    score_box = pygame.Rect(card.centerx - 180, card.top + 130, 360, 60)
-    pygame.draw.rect(screen, (14, 18, 38), score_box, border_radius=16)
-    pygame.draw.rect(screen, (38, 48, 88), score_box, width=1, border_radius=16)
-
-    score_str = f"YOU : {human}    —    {computer} : AI"
-    score_surf = font.render(score_str, True, TEXT_WHITE)
-    screen.blit(score_surf, score_surf.get_rect(center=score_box.center))
-
-    # Footer key hints
-    hint_surf = small_font.render("Press  [ R ]  to Play Again   •   [ Esc ]  to Quit",
-                                  True, (210, 218, 245))
-    screen.blit(hint_surf, hint_surf.get_rect(center=(WIDTH // 2, card.bottom - 40)))
+    title_surf = font.render(title, True, accent)
+    screen.blit(title_surf, title_surf.get_rect(center=(card.centerx, card.top + 21)))
+    info = f"YOU {human} - {computer} AI     [R] play again     [Esc] quit"
+    info_surf = small_font.render(info, True, (210, 218, 245))
+    screen.blit(info_surf, info_surf.get_rect(center=(card.centerx, card.bottom - 20)))
 
 
 def draw_start_screen(screen, background, big_font, font, small_font, text, error):
@@ -394,7 +392,7 @@ def draw_start_screen(screen, background, big_font, font, small_font, text, erro
     screen.blit(typed, typed.get_rect(center=box.center))
 
     # Helper guidance
-    hint = small_font.render("Type a number (e.g. 1 to 8) and press Enter", True, TEXT_MUTED)
+    hint = small_font.render("Type a number (1 to 7 recommended) and press Enter", True, TEXT_MUTED)
     screen.blit(hint, hint.get_rect(center=(cx, card.top + 175)))
 
     if error:
@@ -423,13 +421,225 @@ def ask_k_screen(screen, background, big_font, font, small_font):
                     if text and text.isdigit() and int(text) >= 1:
                         return int(text)
                     error = "Please enter a valid depth (1 or higher)"
-                elif event.unicode.isdigit() and len(text) < 2:
+                elif event.unicode.isascii() and event.unicode.isdigit() and len(text) < 2:
                     text += event.unicode
                     error = ""
 
         draw_start_screen(screen, background, big_font, font, small_font, text, error)
         pygame.display.flip()
         clock.tick(60)
+
+
+def format_time(seconds):
+    """Milliseconds below one second, otherwise seconds."""
+    return f"{seconds * 1000:.0f} ms" if seconds < 1 else f"{seconds:.2f} s"
+
+
+def draw_stats(screen, history, thinking, tree_open, fonts):
+    """
+    Stats strip under the board: details of the computer's last move
+    (column, minimax value, nodes expanded, time, cut branches), running
+    totals, and the button that shows/hides the tree panel.
+    """
+    rect = STATS_RECT
+    pygame.draw.rect(screen, (20, 26, 54), rect, border_radius=16)
+    pygame.draw.rect(screen, (46, 62, 118), rect, width=1, border_radius=16)
+
+    last = history[-1] if history else None
+    if thinking:
+        cells = [("AI MOVE", "thinking", AMBER_GOLD)] + [(n, "...", TEXT_MUTED) for n in
+                                                          ("VALUE", "NODES", "TIME", "CUT")]
+    elif last:
+        cells = [("AI MOVE", f"#{last['move']}  col {last['col']}", AMBER_GOLD),
+                 ("VALUE", f"{last['value']}", TEXT_WHITE),
+                 ("NODES", f"{last['nodes']:,}", TEXT_WHITE),
+                 ("TIME", format_time(last["time"]), TEXT_WHITE),
+                 ("CUT", "-" if last["pruned"] is None else f"{last['pruned']:,}", TEXT_WHITE)]
+    else:
+        cells = [(n, "-", TEXT_MUTED) for n in ("AI MOVE", "VALUE", "NODES", "TIME", "CUT")]
+
+    col_w = 88
+    for i, (label, value, color) in enumerate(cells):
+        x = rect.x + 16 + i * col_w
+        screen.blit(fonts["tiny"].render(label, True, TEXT_MUTED), (x, rect.y + 10))
+        screen.blit(fonts["small"].render(value, True, color), (x, rect.y + 26))
+
+    if history:
+        total_nodes = sum(h["nodes"] for h in history)
+        total_time = sum(h["time"] for h in history)
+        footer = (f"Totals over {len(history)} AI moves: {total_nodes:,} nodes, "
+                  f"{format_time(total_time)}, avg {total_nodes // len(history):,} nodes/move")
+    else:
+        footer = "Stats appear after the computer's first move."
+    screen.blit(fonts["tiny"].render(footer, True, TEXT_MUTED), (rect.x + 16, rect.bottom - 24))
+
+    # Tree toggle button
+    pygame.draw.rect(screen, (30, 40, 80) if tree_open else (16, 20, 42), TREE_BUTTON,
+                     border_radius=10)
+    pygame.draw.rect(screen, AMBER_GOLD if tree_open else (60, 76, 130), TREE_BUTTON,
+                     width=2, border_radius=10)
+    label = fonts["small"].render("TREE [T]", True, TEXT_WHITE)
+    screen.blit(label, label.get_rect(center=TREE_BUTTON.center))
+
+
+class TreePanel:
+    """
+    Scrollable, collapsible view of the minimax tree of the last AI move.
+    Gold rows = the chosen path, grey struck-through rows = pruned branches.
+    Click a row to open/close it; mouse wheel scrolls.
+    """
+
+    ROW_H = 22
+    HEADER_H = 108
+    BUTTONS = ("Expand all", "Collapse all", "Chosen path")
+
+    def __init__(self):
+        self.root = None
+        self.info = None
+        self.expanded = set()
+        self.path = set()
+        self.rows = []
+        self.scroll = 0
+
+    # ----- state -----
+    def clear(self):
+        """Forget the tree (new game)."""
+        self.root, self.info, self.rows = None, None, []
+        self.expanded, self.path, self.scroll = set(), set(), 0
+
+    def set_tree(self, root, info):
+        """Show a new tree; start with the chosen path open."""
+        self.root, self.info = root, info
+        self.path = set(principal_path(root))
+        self.expanded = default_expanded(root)
+        self.scroll = 0
+        self._refresh()
+
+    def _refresh(self):
+        self.rows = visible_rows(self.root, self.expanded) if self.root else []
+        self.scroll = max(0, min(self.scroll, self._max_scroll()))
+
+    def _list_rect(self, rect):
+        return pygame.Rect(rect.x + 12, rect.y + self.HEADER_H,
+                           rect.width - 24, rect.height - self.HEADER_H - 14)
+
+    def _max_scroll(self):
+        return max(0, len(self.rows) * self.ROW_H - self._list_rect(PANEL_RECT).height)
+
+    def _button_rects(self, rect):
+        w, gap = 112, 8
+        return [pygame.Rect(rect.x + 12 + i * (w + gap), rect.y + 66, w, 28)
+                for i in range(len(self.BUTTONS))]
+
+    def scroll_by(self, pixels):
+        """Scroll the list (positive = down), staying inside the list."""
+        self.scroll = max(0, min(self.scroll + pixels, self._max_scroll()))
+
+    # ----- input -----
+    def click(self, pos, rect):
+        """Handle a left click inside the panel (buttons or a tree row)."""
+        if self.root is None:
+            return
+        for i, button in enumerate(self._button_rects(rect)):
+            if button.collidepoint(pos):
+                if i == 0:
+                    self.expanded = expand_all(self.root)
+                elif i == 1:
+                    self.expanded = {self.root}
+                else:
+                    self.expanded = default_expanded(self.root)
+                self.scroll = 0
+                self._refresh()
+                return
+        area = self._list_rect(rect)
+        if area.collidepoint(pos):
+            index = (pos[1] - area.y + self.scroll) // self.ROW_H
+            if 0 <= index < len(self.rows):
+                node, has_children, is_open = self.rows[index]
+                if has_children:
+                    (self.expanded.discard if is_open else self.expanded.add)(node)
+                    self._refresh()
+
+    # ----- drawing -----
+    def draw(self, screen, rect, fonts):
+        """Draw the whole panel."""
+        pygame.draw.rect(screen, (13, 16, 33), rect)
+        pygame.draw.line(screen, (46, 62, 118), rect.topleft, rect.bottomleft, 2)
+        screen.blit(fonts["font"].render("MINIMAX TREE", True, TEXT_WHITE), (rect.x + 14, rect.y + 10))
+
+        if self.root is None:
+            msg = fonts["small"].render("The tree appears after the computer's first move.",
+                                        True, TEXT_MUTED)
+            screen.blit(msg, (rect.x + 14, rect.y + 60))
+            return
+
+        i = self.info
+        sub = (f"AI move #{i['move']}  |  K = {i['K']}  |  chose column {i['col']}  |  "
+               f"{i['nodes']:,} nodes, {i['pruned']:,} cut")
+        screen.blit(fonts["tiny"].render(sub, True, TEXT_MUTED), (rect.x + 14, rect.y + 40))
+        legend = fonts["tiny"].render("gold = chosen path     grey = pruned     "
+                                      "click a row to open / close", True, (110, 125, 165))
+        screen.blit(legend, (rect.x + 14, rect.y + 54))
+
+        for label, button in zip(self.BUTTONS, self._button_rects(rect)):
+            pygame.draw.rect(screen, (22, 28, 58), button, border_radius=8)
+            pygame.draw.rect(screen, (60, 76, 130), button, width=1, border_radius=8)
+            text = fonts["tiny"].render(label, True, TEXT_WHITE)
+            screen.blit(text, text.get_rect(center=button.center))
+
+        area = self._list_rect(rect)
+        old_clip = screen.get_clip()
+        screen.set_clip(area)
+        first = self.scroll // self.ROW_H
+        count = area.height // self.ROW_H + 2
+        for n in range(first, min(first + count, len(self.rows))):
+            self._draw_row(screen, area, n, fonts)
+        screen.set_clip(old_clip)
+
+        if self._max_scroll() > 0:               # scrollbar thumb
+            track = pygame.Rect(area.right - 6, area.y, 5, area.height)
+            thumb_h = max(24, area.height * area.height // (len(self.rows) * self.ROW_H))
+            thumb_y = area.y + (area.height - thumb_h) * self.scroll // self._max_scroll()
+            pygame.draw.rect(screen, (28, 36, 70), track, border_radius=3)
+            pygame.draw.rect(screen, (90, 110, 175), (track.x, thumb_y, 5, thumb_h), border_radius=3)
+
+    def _draw_row(self, screen, area, n, fonts):
+        """Draw row n: triangle, label, alpha, beta and value."""
+        node, has_children, is_open = self.rows[n]
+        y = area.y + n * self.ROW_H - self.scroll
+        row_rect = pygame.Rect(area.x, y, area.width - 10, self.ROW_H - 2)
+        on_path = node in self.path
+
+        if on_path:
+            pygame.draw.rect(screen, (52, 46, 22), row_rect, border_radius=5)
+            pygame.draw.rect(screen, AMBER_GOLD, (row_rect.x, row_rect.y, 3, row_rect.height))
+
+        x = area.x + 10 + node.depth * 14
+        mid = y + self.ROW_H // 2 - 1
+        if has_children:
+            if is_open:
+                points = [(x, mid - 3), (x + 8, mid - 3), (x + 4, mid + 3)]
+            else:
+                points = [(x + 1, mid - 5), (x + 1, mid + 5), (x + 7, mid)]
+            pygame.draw.polygon(screen, PRUNED_GREY if node.pruned else TEXT_MUTED, points)
+        x += 14
+
+        if node.pruned:
+            label_color = detail_color = PRUNED_GREY
+        else:
+            if node.is_leaf:
+                label_color = FINAL_BLUE if node.final else LEAF_GREEN
+            else:
+                label_color = AMBER_GOLD if node.kind == "MAX" else (255, 120, 140)
+            detail_color = TEXT_WHITE if on_path else (190, 198, 225)
+
+        label = fonts["row"].render(node_label(node), True, label_color)
+        screen.blit(label, (x, y + 2))
+        if node.pruned:                          # strike through the label
+            pygame.draw.line(screen, PRUNED_GREY, (x, mid), (x + label.get_width(), mid), 1)
+        details = (f"\u03b1={fmt_bound(node.alpha)}  \u03b2={fmt_bound(node.beta)}   "
+                   f"{node_tail(node)}")
+        screen.blit(fonts["row"].render(details, True, detail_color), (x + label.get_width() + 14, y + 2))
 
 
 def animate_drop(render, col, row, player, current_hover_x=None):
@@ -463,53 +673,125 @@ def animate_drop(render, col, row, player, current_hover_x=None):
         clock.tick(60)
 
 
+def start_ai_job(board, K):
+    """
+    Run choose_move in a background thread so the window stays responsive
+    while the AI thinks. Returns a dict with the thread and, once it has
+    finished, "result" = (col, stats) or "error" = the exception.
+    """
+    snapshot = [row[:] for row in board]
+    job = {"result": None, "error": None}
+
+    def work():
+        try:
+            job["result"] = choose_move(snapshot, K)    # also prints + saves the tree
+        except Exception as exc:                        # re-raised in the GUI thread
+            job["error"] = exc
+
+    job["thread"] = threading.Thread(target=work, daemon=True)
+    job["thread"].start()
+    return job
+
+
+class GameState:
+    """Everything that changes during one game (reset for 'play again')."""
+
+    def __init__(self):
+        self.reset()
+
+    def reset(self):
+        self.board = new_board()
+        self.human_turn = True
+        self.computer_move_at = 0       # tick at which the AI may start thinking
+        self.history = []               # one stats dict per AI move
+        self.fours = set()              # cells to highlight
+        self.ai_job = None
+
+
 def main():
+    """Start screen for K, then the game loop."""
     pygame.init()
     screen = pygame.display.set_mode((WIDTH, HEIGHT))
-    pygame.display.set_caption("Connect 4")
+    pygame.display.set_caption("Connect 4 - Minimax AI")
 
-    font = pygame.font.SysFont("segoeui,arial,helvetica", 24, bold=True)
-    small_font = pygame.font.SysFont("segoeui,arial,helvetica", 16, bold=True)
-    big_font = pygame.font.SysFont("segoeui,arial,helvetica", 48, bold=True)
+    face = "segoeui,arial,helvetica"
+    fonts = {
+        "font": pygame.font.SysFont(face, 24, bold=True),
+        "small": pygame.font.SysFont(face, 16, bold=True),
+        "tiny": pygame.font.SysFont(face, 12, bold=True),
+        "row": pygame.font.SysFont(face, 14),
+        "big": pygame.font.SysFont(face, 48, bold=True),
+    }
 
     # Pre-render visual assets once
     background = make_background()
     overlay = make_board_overlay()
     discs = {p: make_disc(col) for p, col in DISC_COLORS.items()}
 
-    # Ask search depth K (player types it)
-    K = ask_k_screen(screen, background, big_font, font, small_font)
+    K = ask_k_screen(screen, background, fonts["big"], fonts["font"], fonts["small"])
     if K is None:
         pygame.quit()
         return
 
-    board = new_board()
-    human_turn = True
-    computer_move_at = 0
+    state = GameState()
+    panel = TreePanel()
+    show_tree = False
+    smooth_hover_x = WIDTH // 2
     clock = pygame.time.Clock()
 
-    # Smooth hover tracking state
-    smooth_hover_x = WIDTH // 2
+    def toggle_tree():
+        """Show/hide the tree panel; the window grows to the right to fit it."""
+        nonlocal screen, show_tree
+        show_tree = not show_tree
+        screen = pygame.display.set_mode((WIDTH + (PANEL_W if show_tree else 0), HEIGHT))
 
     def render(hover_x=None, falling=None, active_col=None):
         """Draw and display one complete frame."""
-        draw_game(screen, board, background, overlay, discs,
+        draw_game(screen, state.board, background, overlay, discs,
                   hover_x=hover_x,
-                  hover_player=HUMAN if human_turn else COMPUTER,
-                  falling=falling,
-                  hovered_col=active_col)
-        draw_scoreboard(screen, board, font, small_font, human_turn, K)
-        if is_full(board):
-            draw_game_over(screen, board, big_font, font, small_font)
+                  hover_player=HUMAN if state.human_turn else COMPUTER,
+                  falling=falling, hovered_col=active_col, highlight=state.fours)
+        draw_scoreboard(screen, state.board, fonts["font"], fonts["small"], state.human_turn, K)
+        draw_stats(screen, state.history, not state.human_turn and not is_full(state.board),
+                   show_tree, fonts)
+        if show_tree:
+            panel.draw(screen, PANEL_RECT, fonts)
+        if is_full(state.board):
+            draw_game_over(screen, state.board, fonts["font"], fonts["small"])
         pygame.display.flip()
+
+    def finish_ai_move():
+        """The AI thread is done: animate its disc, record stats, feed the tree panel."""
+        job, state.ai_job = state.ai_job, None
+        if job["error"] is not None:
+            raise job["error"]
+        col, stats = job["result"]
+        after, row = drop_piece(state.board, col, COMPUTER)
+        animate_drop(render, col, row, COMPUTER, current_hover_x=cell_center(0, col)[0])
+        state.board = after
+        state.fours = four_cells(after)
+        state.human_turn = True
+
+        entry = {"move": len(state.history) + 1, "col": col + 1, "K": K,
+                 "value": stats["value"], "nodes": stats["nodes"],
+                 "time": stats["time"], "pruned": stats["pruned"]}
+        state.history.append(entry)
+        if stats["root"] is not None:
+            panel.set_tree(stats["root"], entry)
+        print(f"Computer plays column {col + 1} "
+              f"(value={stats['value']}, nodes={stats['nodes']}, "
+              f"cut={stats['pruned']}, time={stats['time']:.4f}s)")
+        # Clicks made while the AI was thinking/animating must not become moves.
+        pygame.event.clear(pygame.MOUSEBUTTONDOWN)
 
     running = True
     while running:
-        mouse_pos = pygame.mouse.get_pos()
-        mouse_col = column_at(mouse_pos[0])
+        mouse_x, mouse_y = pygame.mouse.get_pos()
+        # Only the board area counts as a column (not the stats strip below it).
+        mouse_col = column_at(mouse_x) if mouse_y < BOARD_RECT.bottom else None
 
         # Smooth glide towards mouse column
-        if mouse_col is not None and mouse_col in get_valid_moves(board):
+        if mouse_col is not None and mouse_col in get_valid_moves(state.board):
             target_x = cell_center(0, mouse_col)[0]
             smooth_hover_x += (target_x - smooth_hover_x) * 0.28
             active_hover_col = mouse_col
@@ -522,34 +804,39 @@ def main():
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE:
                     running = False
-                elif event.key == pygame.K_r and is_full(board):
-                    board = new_board()
-                    human_turn = True
+                elif event.key == pygame.K_t:
+                    toggle_tree()
+                elif event.key == pygame.K_r and is_full(state.board):
+                    state.reset()
+                    panel.clear()
+            elif event.type == pygame.MOUSEWHEEL:
+                if show_tree and PANEL_RECT.collidepoint(pygame.mouse.get_pos()):
+                    panel.scroll_by(-event.y * TreePanel.ROW_H * 3)
             elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-                col = column_at(event.pos[0])
-                if human_turn and col is not None and col in get_valid_moves(board):
-                    after, row = drop_piece(board, col, HUMAN)
-                    # Smooth animated drop with elastic bounce
-                    animate_drop(render, col, row, HUMAN, current_hover_x=smooth_hover_x)
-                    board = after
-                    human_turn = False
-                    computer_move_at = pygame.time.get_ticks() + 200
+                if TREE_BUTTON.collidepoint(event.pos):
+                    toggle_tree()
+                elif show_tree and PANEL_RECT.collidepoint(event.pos):
+                    panel.click(event.pos, PANEL_RECT)
+                elif event.pos[1] < BOARD_RECT.bottom:
+                    col = column_at(event.pos[0])
+                    if state.human_turn and col is not None and col in get_valid_moves(state.board):
+                        after, row = drop_piece(state.board, col, HUMAN)
+                        animate_drop(render, col, row, HUMAN, current_hover_x=smooth_hover_x)
+                        state.board = after
+                        state.fours = four_cells(after)
+                        state.human_turn = False
+                        state.computer_move_at = pygame.time.get_ticks() + 200
 
-        # Draw frame
-        show_hover = smooth_hover_x if human_turn and active_hover_col is not None else None
+        show_hover = smooth_hover_x if state.human_turn and active_hover_col is not None else None
         render(hover_x=show_hover, active_col=active_hover_col)
 
-        # Computer's turn
-        if not human_turn and get_valid_moves(board) and pygame.time.get_ticks() >= computer_move_at:
-            col, stats = choose_move(board, K)
-            after, row = drop_piece(board, col, COMPUTER)
-            target_ai_x = cell_center(0, col)[0]
-            animate_drop(render, col, row, COMPUTER, current_hover_x=target_ai_x)
-            board = after
-            print(f"Computer plays column {col + 1} "
-                  f"(value={stats['value']}, nodes={stats['nodes']}, "
-                  f"time={stats['time']:.4f}s)")
-            human_turn = True
+        # Computer's turn: think in a background thread, then play the move.
+        if not state.human_turn and not is_full(state.board):
+            if state.ai_job is None:
+                if pygame.time.get_ticks() >= state.computer_move_at:
+                    state.ai_job = start_ai_job(state.board, K)
+            elif not state.ai_job["thread"].is_alive():
+                finish_ai_move()
 
         clock.tick(60)
 

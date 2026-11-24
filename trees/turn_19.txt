@@ -1,0 +1,5 @@
+[MAX] root                                  a=539 b=+inf          value=539
+  [MIN] col=6 (comp)                        a=-inf b=539          value=539
+    [MAX] col=6 (human)                     a=539 b=+inf          value=539
+      [MIN] col=6 (comp)                    a=-inf b=539          value=539
+        [LEAF] col=6 (human)                a=-inf b=+inf         h=539

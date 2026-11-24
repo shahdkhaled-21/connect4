@@ -113,3 +113,36 @@ def h2(board, me):
 def h3(board, me):
     """h2 + center-column bonus."""
     return h2(board, me) + center_score(board, me)
+
+
+PARITY_BONUS = 10
+CENTER_MULT = 3                          # h4 weighs the centre 3x more than h3
+# Height of a cell = ROWS - row (1 = bottom). The board fills completely and
+# columns have an even number of cells, so with "follow-up" play the first
+# player (HUMAN) ends up with the odd heights and the second (COMPUTER) with
+# the even ones.
+OWN_PARITY = {HUMAN: 1, COMPUTER: 0}
+
+
+def parity_score(board, me):
+    """
+    Bonus for each 3-disc window whose empty cell is NOT playable yet but sits
+    at a height its owner naturally gets. Counted for `me` minus the opponent.
+    """
+    total = 0
+    for window in WINDOWS:
+        cells = [board[r][c] for r, c in window]
+        if cells.count(EMPTY) != 1:
+            continue
+        for owner, sign in ((me, 1), (other(me), -1)):
+            if cells.count(owner) == 3:
+                r, c = window[cells.index(EMPTY)]
+                playable = r == ROWS - 1 or board[r + 1][c] != EMPTY
+                if not playable and (ROWS - r) % 2 == OWN_PARITY[owner]:
+                    total += sign * PARITY_BONUS
+    return total
+
+
+def h4(board, me):
+    """h2 + 3x centre bonus + parity of future threats."""
+    return h2(board, me) + CENTER_MULT * center_score(board, me) + parity_score(board, me)
