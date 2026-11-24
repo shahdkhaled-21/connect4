@@ -1,0 +1,4 @@
+[MAX] root                                  a=7000 b=+inf         value=7000
+  [MIN] col=7 (comp)                        a=-inf b=7000         value=7000
+    [MAX] col=7 (human)                     a=7000 b=+inf         value=7000
+      [FINAL] col=7 (comp)                  a=-inf b=+inf         score=7000

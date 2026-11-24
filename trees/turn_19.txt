@@ -1,0 +1,10 @@
+[MAX] root                                  a=706 b=+inf          value=706
+  [MIN] col=3 (comp)                        a=-inf b=706          value=706
+    [MAX] col=7 (human)                     a=706 b=+inf          value=706
+      [LEAF] col=7 (comp)                   a=-inf b=+inf         h=706
+  [MIN] col=7 (comp)                        a=706 b=706           value=706
+    [MAX] col=3 (human)                     a=834 b=+inf          value=834
+      [LEAF] col=7 (comp)                   a=706 b=+inf          h=834
+    [MAX] col=7 (human)                     a=706 b=834           value=706
+      [LEAF] col=3 (comp)                   a=706 b=834           h=706
+      [LEAF] col=7 (comp)                   a=706 b=834           h=700

@@ -27,8 +27,8 @@ for recent Python versions.
 |---|---|
 | `python main.py` | Console game. Asks for K, then you play (you move first) |
 | `python gui.py` | Pygame GUI with a start screen for K |
-| `python experiments.py` | Time and nodes expanded for K = 1..6, with and without pruning. Writes CSVs and charts to `results/` |
-| `python compare.py [K]` | Heuristic tournament (`h1`, `h2`, `h3`), each pair twice with sides swapped. Writes `results/comparison.csv` |
+| `python experiments.py` | Time and nodes expanded for K = 1..7 (without pruning up to K = 6), CSVs and charts in `results/` (about 3 minutes) |
+| `python compare.py 2 3 4` | Heuristic tournament (`h1` to `h4`): every pair, both sides, 15 random openings, for each K given. Writes `results/comparison.csv` (about 3 minutes) |
 | `python -m pytest -v` | All tests |
 
 On every computer turn the minimax tree is printed to the console and saved
@@ -42,7 +42,7 @@ and cut branches are marked `PRUNED`.
 |---|---|
 | `engine.py` | Board, moves, counting connected-fours, scores, winner |
 | `ai.py` | Minimax + alpha-beta, `choose_move` |
-| `heuristic.py` | Heuristics `h1`, `h2`, `h3` (four-difference, windows, playable threats, center control) |
+| `heuristic.py` | Heuristics `h1` to `h4` (four-difference, windows, playable threats, center control, parity). `h4` is the default |
 | `tree.py` | Tree node, console printer, file and JSON export |
 | `main.py` | Console game loop |
 | `gui.py` | Pygame GUI |

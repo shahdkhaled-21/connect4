@@ -1,9 +1,9 @@
 """Tests for heuristic.py: interface, symmetry and sanity properties."""
 
 from engine import new_board, drop_piece, COMPUTER, HUMAN
-from heuristic import WINDOWS, h1, h2, h3, other
+from heuristic import WINDOWS, h1, h2, h3, h4, other, parity_score, PARITY_BONUS
 
-ALL = [h1, h2, h3]
+ALL = [h1, h2, h3, h4]
 
 
 def build(moves):
@@ -57,3 +57,17 @@ def test_does_not_mutate_board():
     for h in ALL:
         h(board, COMPUTER)
     assert board == snapshot
+
+def test_parity_rewards_the_owners_natural_height():
+    """Computer owns even heights: a hidden 3-window at height 2 earns the bonus."""
+    board = build([(0, HUMAN), (0, COMPUTER), (1, HUMAN), (1, COMPUTER),
+                   (2, HUMAN), (2, COMPUTER)])      # C C C on height 2, gap at column 4
+    assert parity_score(board, COMPUTER) == PARITY_BONUS
+    assert parity_score(board, HUMAN) == -PARITY_BONUS
+
+
+def test_parity_ignores_the_wrong_height():
+    """Human owns odd heights: the same shape at height 2 earns nothing."""
+    board = build([(0, COMPUTER), (0, HUMAN), (1, COMPUTER), (1, HUMAN),
+                   (2, COMPUTER), (2, HUMAN)])
+    assert parity_score(board, HUMAN) == 0

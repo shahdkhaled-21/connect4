@@ -57,6 +57,26 @@ def count_fours(board, player):
     return count
 
 
+def four_cells(board):
+    """
+    Return the set of (row, col) cells that belong to at least one
+    connected-four of either player (used by the GUI to highlight fours).
+    """
+    cells = set()
+    for r in range(ROWS):
+        for c in range(COLS):
+            first = board[r][c]
+            if first == EMPTY:
+                continue
+            for dr, dc in DIRECTIONS:
+                end_r, end_c = r + 3 * dr, c + 3 * dc
+                if not (0 <= end_r < ROWS and 0 <= end_c < COLS):
+                    continue
+                if all(board[r + i * dr][c + i * dc] == first for i in range(4)):
+                    cells.update((r + i * dr, c + i * dc) for i in range(4))
+    return cells
+
+
 def new_fours_after_move(board, row, col, player):
     """
     Count only the fours that include the disc at (row, col).
