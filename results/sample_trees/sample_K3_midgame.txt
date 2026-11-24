@@ -1,0 +1,163 @@
+Sample 3 - mid-game position
+K = 3, computer (C = MAX) to move; human = H = MIN. Columns are numbered 1..7.
+Board before the computer's move (row 1 = top):
+
+  . . . . . . .
+  . . . . . . .
+  . . . . . . .
+  . . C . . . .
+  . . H C H . .
+  . . H H C . .
+
+Computer chooses column 4 (root value 75); 76 nodes visited, 72 branches cut.
+Format: [kind] col=<column played> (<who played it>)  a=alpha b=beta  value / h (heuristic) / score (full board) / PRUNED
+kind = who moves NEXT from that node.
+----------------------------------------------------------------------------------------------------
+[MAX] root                                  a=75 b=+inf           value=75
+  [MIN] col=4 (comp)                        a=-inf b=75           value=75
+    [MAX] col=4 (human)                     a=75 b=+inf           value=75
+      [LEAF] col=4 (comp)                   a=-inf b=+inf         h=43
+      [LEAF] col=3 (comp)                   a=43 b=+inf           h=45
+      [LEAF] col=5 (comp)                   a=45 b=+inf           h=75
+      [LEAF] col=2 (comp)                   a=75 b=+inf           h=35
+      [LEAF] col=6 (comp)                   a=75 b=+inf           h=30
+      [LEAF] col=1 (comp)                   a=75 b=+inf           h=32
+      [LEAF] col=7 (comp)                   a=75 b=+inf           h=28
+    [MAX] col=3 (human)                     a=100 b=75            value=100
+      [LEAF] col=4 (comp)                   a=-inf b=75           h=100
+      [MIN] col=3 (comp)                    a=100 b=75            PRUNED
+      [MIN] col=5 (comp)                    a=100 b=75            PRUNED
+      [MIN] col=2 (comp)                    a=100 b=75            PRUNED
+      [MIN] col=6 (comp)                    a=100 b=75            PRUNED
+      [MIN] col=1 (comp)                    a=100 b=75            PRUNED
+      [MIN] col=7 (comp)                    a=100 b=75            PRUNED
+    [MAX] col=5 (human)                     a=87 b=75             value=87
+      [LEAF] col=4 (comp)                   a=-inf b=75           h=87
+      [MIN] col=3 (comp)                    a=87 b=75             PRUNED
+      [MIN] col=5 (comp)                    a=87 b=75             PRUNED
+      [MIN] col=2 (comp)                    a=87 b=75             PRUNED
+      [MIN] col=6 (comp)                    a=87 b=75             PRUNED
+      [MIN] col=1 (comp)                    a=87 b=75             PRUNED
+      [MIN] col=7 (comp)                    a=87 b=75             PRUNED
+    [MAX] col=2 (human)                     a=79 b=75             value=79
+      [LEAF] col=4 (comp)                   a=-inf b=75           h=79
+      [MIN] col=3 (comp)                    a=79 b=75             PRUNED
+      [MIN] col=5 (comp)                    a=79 b=75             PRUNED
+      [MIN] col=2 (comp)                    a=79 b=75             PRUNED
+      [MIN] col=6 (comp)                    a=79 b=75             PRUNED
+      [MIN] col=1 (comp)                    a=79 b=75             PRUNED
+      [MIN] col=7 (comp)                    a=79 b=75             PRUNED
+    [MAX] col=6 (human)                     a=109 b=75            value=109
+      [LEAF] col=4 (comp)                   a=-inf b=75           h=109
+      [MIN] col=3 (comp)                    a=109 b=75            PRUNED
+      [MIN] col=5 (comp)                    a=109 b=75            PRUNED
+      [MIN] col=2 (comp)                    a=109 b=75            PRUNED
+      [MIN] col=6 (comp)                    a=109 b=75            PRUNED
+      [MIN] col=1 (comp)                    a=109 b=75            PRUNED
+      [MIN] col=7 (comp)                    a=109 b=75            PRUNED
+    [MAX] col=1 (human)                     a=77 b=75             value=77
+      [LEAF] col=4 (comp)                   a=-inf b=75           h=77
+      [MIN] col=3 (comp)                    a=77 b=75             PRUNED
+      [MIN] col=5 (comp)                    a=77 b=75             PRUNED
+      [MIN] col=2 (comp)                    a=77 b=75             PRUNED
+      [MIN] col=6 (comp)                    a=77 b=75             PRUNED
+      [MIN] col=1 (comp)                    a=77 b=75             PRUNED
+      [MIN] col=7 (comp)                    a=77 b=75             PRUNED
+    [MAX] col=7 (human)                     a=111 b=75            value=111
+      [LEAF] col=4 (comp)                   a=-inf b=75           h=111
+      [MIN] col=3 (comp)                    a=111 b=75            PRUNED
+      [MIN] col=5 (comp)                    a=111 b=75            PRUNED
+      [MIN] col=2 (comp)                    a=111 b=75            PRUNED
+      [MIN] col=6 (comp)                    a=111 b=75            PRUNED
+      [MIN] col=1 (comp)                    a=111 b=75            PRUNED
+      [MIN] col=7 (comp)                    a=111 b=75            PRUNED
+  [MIN] col=3 (comp)                        a=75 b=53             value=53
+    [MAX] col=4 (human)                     a=75 b=+inf           value=53
+      [LEAF] col=4 (comp)                   a=75 b=+inf           h=49
+      [LEAF] col=3 (comp)                   a=75 b=+inf           h=53
+      [LEAF] col=5 (comp)                   a=75 b=+inf           h=27
+      [LEAF] col=2 (comp)                   a=75 b=+inf           h=25
+      [LEAF] col=6 (comp)                   a=75 b=+inf           h=15
+      [LEAF] col=1 (comp)                   a=75 b=+inf           h=21
+      [LEAF] col=7 (comp)                   a=75 b=+inf           h=13
+    [MAX] col=3 (human)                     a=75 b=53             PRUNED
+    [MAX] col=5 (human)                     a=75 b=53             PRUNED
+    [MAX] col=2 (human)                     a=75 b=53             PRUNED
+    [MAX] col=6 (human)                     a=75 b=53             PRUNED
+    [MAX] col=1 (human)                     a=75 b=53             PRUNED
+    [MAX] col=7 (human)                     a=75 b=53             PRUNED
+  [MIN] col=5 (comp)                        a=75 b=39             value=39
+    [MAX] col=4 (human)                     a=75 b=+inf           value=39
+      [LEAF] col=4 (comp)                   a=75 b=+inf           h=39
+      [LEAF] col=3 (comp)                   a=75 b=+inf           h=27
+      [LEAF] col=5 (comp)                   a=75 b=+inf           h=27
+      [LEAF] col=2 (comp)                   a=75 b=+inf           h=15
+      [LEAF] col=6 (comp)                   a=75 b=+inf           h=10
+      [LEAF] col=1 (comp)                   a=75 b=+inf           h=11
+      [LEAF] col=7 (comp)                   a=75 b=+inf           h=6
+    [MAX] col=3 (human)                     a=75 b=39             PRUNED
+    [MAX] col=5 (human)                     a=75 b=39             PRUNED
+    [MAX] col=2 (human)                     a=75 b=39             PRUNED
+    [MAX] col=6 (human)                     a=75 b=39             PRUNED
+    [MAX] col=1 (human)                     a=75 b=39             PRUNED
+    [MAX] col=7 (human)                     a=75 b=39             PRUNED
+  [MIN] col=2 (comp)                        a=75 b=28             value=28
+    [MAX] col=4 (human)                     a=75 b=+inf           value=28
+      [LEAF] col=4 (comp)                   a=75 b=+inf           h=28
+      [LEAF] col=3 (comp)                   a=75 b=+inf           h=25
+      [LEAF] col=5 (comp)                   a=75 b=+inf           h=15
+      [LEAF] col=2 (comp)                   a=75 b=+inf           h=15
+      [LEAF] col=6 (comp)                   a=75 b=+inf           h=8
+      [LEAF] col=1 (comp)                   a=75 b=+inf           h=4
+      [LEAF] col=7 (comp)                   a=75 b=+inf           h=1
+    [MAX] col=3 (human)                     a=75 b=28             PRUNED
+    [MAX] col=5 (human)                     a=75 b=28             PRUNED
+    [MAX] col=2 (human)                     a=75 b=28             PRUNED
+    [MAX] col=6 (human)                     a=75 b=28             PRUNED
+    [MAX] col=1 (human)                     a=75 b=28             PRUNED
+    [MAX] col=7 (human)                     a=75 b=28             PRUNED
+  [MIN] col=6 (comp)                        a=75 b=23             value=23
+    [MAX] col=4 (human)                     a=75 b=+inf           value=23
+      [LEAF] col=4 (comp)                   a=75 b=+inf           h=23
+      [LEAF] col=3 (comp)                   a=75 b=+inf           h=15
+      [LEAF] col=5 (comp)                   a=75 b=+inf           h=10
+      [LEAF] col=2 (comp)                   a=75 b=+inf           h=8
+      [LEAF] col=6 (comp)                   a=75 b=+inf           h=4
+      [LEAF] col=1 (comp)                   a=75 b=+inf           h=4
+      [LEAF] col=7 (comp)                   a=75 b=+inf           h=-4
+    [MAX] col=3 (human)                     a=75 b=23             PRUNED
+    [MAX] col=5 (human)                     a=75 b=23             PRUNED
+    [MAX] col=2 (human)                     a=75 b=23             PRUNED
+    [MAX] col=6 (human)                     a=75 b=23             PRUNED
+    [MAX] col=1 (human)                     a=75 b=23             PRUNED
+    [MAX] col=7 (human)                     a=75 b=23             PRUNED
+  [MIN] col=1 (comp)                        a=75 b=45             value=45
+    [MAX] col=4 (human)                     a=75 b=+inf           value=45
+      [LEAF] col=4 (comp)                   a=75 b=+inf           h=45
+      [LEAF] col=3 (comp)                   a=75 b=+inf           h=21
+      [LEAF] col=5 (comp)                   a=75 b=+inf           h=11
+      [LEAF] col=2 (comp)                   a=75 b=+inf           h=4
+      [LEAF] col=6 (comp)                   a=75 b=+inf           h=4
+      [LEAF] col=1 (comp)                   a=75 b=+inf           h=1
+      [LEAF] col=7 (comp)                   a=75 b=+inf           h=-3
+    [MAX] col=3 (human)                     a=75 b=45             PRUNED
+    [MAX] col=5 (human)                     a=75 b=45             PRUNED
+    [MAX] col=2 (human)                     a=75 b=45             PRUNED
+    [MAX] col=6 (human)                     a=75 b=45             PRUNED
+    [MAX] col=1 (human)                     a=75 b=45             PRUNED
+    [MAX] col=7 (human)                     a=75 b=45             PRUNED
+  [MIN] col=7 (comp)                        a=75 b=19             value=19
+    [MAX] col=4 (human)                     a=75 b=+inf           value=19
+      [LEAF] col=4 (comp)                   a=75 b=+inf           h=19
+      [LEAF] col=3 (comp)                   a=75 b=+inf           h=13
+      [LEAF] col=5 (comp)                   a=75 b=+inf           h=6
+      [LEAF] col=2 (comp)                   a=75 b=+inf           h=1
+      [LEAF] col=6 (comp)                   a=75 b=+inf           h=-4
+      [LEAF] col=1 (comp)                   a=75 b=+inf           h=-3
+      [LEAF] col=7 (comp)                   a=75 b=+inf           h=-7
+    [MAX] col=3 (human)                     a=75 b=19             PRUNED
+    [MAX] col=5 (human)                     a=75 b=19             PRUNED
+    [MAX] col=2 (human)                     a=75 b=19             PRUNED
+    [MAX] col=6 (human)                     a=75 b=19             PRUNED
+    [MAX] col=1 (human)                     a=75 b=19             PRUNED
+    [MAX] col=7 (human)                     a=75 b=19             PRUNED
