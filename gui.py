@@ -1222,9 +1222,9 @@ def ask_k_screen(screen, background, fonts, initial_k="4", is_fs=False):
         nonlocal screen, bg_full
         if is_fs:
             try:
-                screen = pygame.display.set_mode((desktop_w, desktop_h), pygame.NOFRAME)
+                screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
             except Exception:
-                screen = pygame.display.set_mode((WIDTH, HEIGHT))
+                screen = pygame.display.set_mode((desktop_w, desktop_h), pygame.FULLSCREEN)
             sw, sh = screen.get_width(), screen.get_height()
             bg_full = make_background(total_w=max(sw, WIDTH), total_h=max(sh, HEIGHT))
         else:
@@ -1345,9 +1345,9 @@ def main():
         cw = WIDTH + (PANEL_W if show_tree else 0)
         if is_fullscreen:
             try:
-                screen = pygame.display.set_mode((desktop_w, desktop_h), pygame.NOFRAME)
+                screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
             except Exception:
-                screen = pygame.display.set_mode((cw, HEIGHT))
+                screen = pygame.display.set_mode((desktop_w, desktop_h), pygame.FULLSCREEN)
             sw, sh = screen.get_width(), screen.get_height()
             bg_full = make_background(total_w=max(sw, WIDTH + PANEL_W), total_h=max(sh, HEIGHT))
             offset_x = max(0, (sw - cw) // 2)
