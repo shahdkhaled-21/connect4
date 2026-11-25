@@ -14,6 +14,7 @@ import ctypes
 import math
 import os
 import threading
+import time
 import pygame
 
 # Enable Windows Per-Monitor High-DPI awareness before Pygame initializes.
@@ -1084,6 +1085,50 @@ class GameState:
 
 
 # ==============================================================================
+# Screenshot & Toast Notifications
+# ==============================================================================
+
+def save_screenshot(surf):
+    """Save a clean timestamped screenshot to screenshots/ and return the path."""
+    try:
+        os.makedirs("screenshots", exist_ok=True)
+        ts = time.strftime("%Y%m%d_%H%M%S")
+        filename = f"screenshots/connect4_{ts}.png"
+        pygame.image.save(surf, filename)
+        return filename
+    except Exception as exc:
+        print(f"Screenshot error: {exc}")
+        return None
+
+
+def is_screenshot_key(event):
+    """Check if the user pressed a screenshot key (PrtScn, F12, or Ctrl+S)."""
+    if event.type != pygame.KEYDOWN:
+        return False
+    if event.key in (getattr(pygame, "K_PRINTSCREEN", 1073741894),
+                     getattr(pygame, "K_PRINT", 1073741894),
+                     getattr(pygame, "K_SYSREQ", 1073741978),
+                     pygame.K_F12):
+        return True
+    if event.key == pygame.K_s and (pygame.key.get_mods() & (pygame.KMOD_CTRL | pygame.KMOD_META)):
+        return True
+    return False
+
+
+def draw_toast(screen, message, fonts):
+    """Draw a sleek floating toast notification at bottom center."""
+    text_surf = fonts["small"].render(message, True, TEXT_WHITE)
+    tw, th = text_surf.get_size()
+    pad_h, pad_v = 20, 10
+    pill = pygame.Rect((screen.get_width() - tw) // 2 - pad_h,
+                       screen.get_height() - th - pad_v - 22,
+                       tw + pad_h * 2, th + pad_v * 2)
+    pygame.draw.rect(screen, (22, 28, 56), pill, border_radius=12)
+    pygame.draw.rect(screen, AMBER_GOLD, pill, width=2, border_radius=12)
+    screen.blit(text_surf, (pill.x + pad_h, pill.y + pad_v))
+
+
+# ==============================================================================
 # Start Screen (Search Depth K Input)
 # ==============================================================================
 
@@ -1157,7 +1202,7 @@ def draw_start_screen(screen, background, fonts, text, error, mouse_pos, is_fs=F
         err_s = fonts["tiny"].render(error, True, RUBY_RED)
         screen.blit(err_s, err_s.get_rect(center=(cx, card.bottom - 22)))
     else:
-        hint_s = fonts["tiny"].render("Press [F11] for Fullscreen  •  [Esc] to Quit", True, (110, 125, 165))
+        hint_s = fonts["tiny"].render("F11: Fullscreen  •  PrtScn / F12: Screenshot  •  Esc: Exit Fullscreen", True, (110, 125, 165))
         screen.blit(hint_s, hint_s.get_rect(center=(cx, card.bottom - 22)))
 
     return preset_rects, start_btn, fs_btn
@@ -1170,14 +1215,16 @@ def ask_k_screen(screen, background, fonts, initial_k="4", is_fs=False):
     desktop_w, desktop_h = get_desktop_resolution()
     start_canvas = pygame.Surface((WIDTH, HEIGHT))
     bg_full = make_background(total_w=desktop_w, total_h=desktop_h)
+    toast_text = ""
+    toast_until = 0
 
     def apply_screen_mode():
         nonlocal screen, bg_full
         if is_fs:
             try:
-                screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
+                screen = pygame.display.set_mode((desktop_w, desktop_h), pygame.NOFRAME)
             except Exception:
-                screen = pygame.display.set_mode((desktop_w, desktop_h), pygame.FULLSCREEN)
+                screen = pygame.display.set_mode((WIDTH, HEIGHT))
             sw, sh = screen.get_width(), screen.get_height()
             bg_full = make_background(total_w=max(sw, WIDTH), total_h=max(sh, HEIGHT))
         else:
@@ -1200,22 +1247,31 @@ def ask_k_screen(screen, background, fonts, initial_k="4", is_fs=False):
         else:
             screen.blit(start_canvas, (0, 0))
 
-        pygame.display.flip()
+        if toast_until > pygame.time.get_ticks():
+            draw_toast(screen, toast_text, fonts)
+
+        try:
+            pygame.display.flip()
+        except pygame.error:
+            pass
         clock.tick(60)
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 return None, False
             if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_F11:
+                if is_screenshot_key(event):
+                    path = save_screenshot(screen)
+                    if path:
+                        toast_text = f"Screenshot saved: {path}"
+                        toast_until = pygame.time.get_ticks() + 2500
+                elif event.key == pygame.K_F11:
                     is_fs = not is_fs
                     apply_screen_mode()
                 elif event.key == pygame.K_ESCAPE:
                     if is_fs:
                         is_fs = False
                         apply_screen_mode()
-                    else:
-                        return None, False
                 elif event.key == pygame.K_BACKSPACE:
                     text = text[:-1]
                     error = ""
@@ -1273,6 +1329,8 @@ def main():
     smooth_hover_x = WIDTH // 2
     clock = pygame.time.Clock()
     running = True
+    toast_text = ""
+    toast_until = 0
 
     res = ask_k_screen(screen, background, fonts, initial_k="4", is_fs=False)
     if res is None or res[0] is None:
@@ -1287,9 +1345,9 @@ def main():
         cw = WIDTH + (PANEL_W if show_tree else 0)
         if is_fullscreen:
             try:
-                screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
+                screen = pygame.display.set_mode((desktop_w, desktop_h), pygame.NOFRAME)
             except Exception:
-                screen = pygame.display.set_mode((desktop_w, desktop_h), pygame.FULLSCREEN)
+                screen = pygame.display.set_mode((cw, HEIGHT))
             sw, sh = screen.get_width(), screen.get_height()
             bg_full = make_background(total_w=max(sw, WIDTH + PANEL_W), total_h=max(sh, HEIGHT))
             offset_x = max(0, (sw - cw) // 2)
@@ -1352,7 +1410,13 @@ def main():
         else:
             screen.blit(sub_canvas, (0, 0))
 
-        pygame.display.flip()
+        if toast_until > pygame.time.get_ticks():
+            draw_toast(screen, toast_text, fonts)
+
+        try:
+            pygame.display.flip()
+        except pygame.error:
+            pass
         return buttons, play_again_btn, home_btn_over
 
     def finish_ai_move():
@@ -1396,15 +1460,18 @@ def main():
             if event.type == pygame.QUIT:
                 running = False
             elif event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_F11:
+                if is_screenshot_key(event):
+                    path = save_screenshot(screen)
+                    if path:
+                        toast_text = f"Screenshot saved: {path}"
+                        toast_until = pygame.time.get_ticks() + 2500
+                elif event.key == pygame.K_F11:
                     toggle_fullscreen()
                 elif event.key == pygame.K_h:
                     go_home()
                 elif event.key == pygame.K_ESCAPE:
                     if is_fullscreen:
                         toggle_fullscreen()
-                    else:
-                        running = False
                 elif event.key == pygame.K_t:
                     toggle_tree()
                 elif event.key == pygame.K_r:
