@@ -110,7 +110,7 @@ def _emit_tree(root, board, tree_depth=None, show_boards=False):
 
 
 def choose_move(board, K, use_pruning=True, print_tree=True,
-                heuristic=None, player=COMPUTER, tree_depth=None, show_boards=False):
+                heuristic=None, player=COMPUTER, tree_depth=None, show_boards=True):
     """
     Best column for `player` after a K-level search.
     Returns (col, stats), stats = {"nodes", "time", "value", "pruned", "root"}:

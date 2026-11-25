@@ -41,6 +41,8 @@ def ask_k():
     while True:
         k = parse_int(input("Enter K (search depth, e.g. 1-6): "))
         if k is not None and k >= 1:
+            if k >= 5:
+                print("Tip: for K >= 5, use --tree-depth N or --no-boards to shorten console output (the full tree is saved in trees/).")
             return k
         print("K must be an integer >= 1.")
 
@@ -62,11 +64,11 @@ def ask_human_move(board):
             return col
 
 
-def play(tree_depth=None, show_boards=False):
+def play(tree_depth=None, show_boards=True):
     """
     Run one full game.
     tree_depth limits the console print of the tree (the saved file stays full);
-    show_boards prints the board grid under every leaf of the tree.
+    show_boards prints the board grid under every leaf of the tree (default True).
     """
     K = ask_k()
     board = new_board()
@@ -109,11 +111,11 @@ def main():
     parser.add_argument("--tree-depth", type=int, default=None, metavar="N",
                         help="print only the first N levels of the tree in the console "
                              "(the file in trees/ always has the full tree)")
-    parser.add_argument("--boards", action="store_true",
-                        help="print the board grid under every leaf of the tree")
+    parser.add_argument("--no-boards", action="store_true",
+                        help="do not print the board grid under every leaf of the tree")
     args = parser.parse_args()
     try:
-        play(tree_depth=args.tree_depth, show_boards=args.boards)
+        play(tree_depth=args.tree_depth, show_boards=not args.no_boards)
     except (KeyboardInterrupt, EOFError):
         print("\nGame aborted.")
 

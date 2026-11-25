@@ -33,9 +33,9 @@ for recent Python versions.
 
 | Command | What it does |
 |---|---|
-| `python main.py` | Console game. Asks for K, then you play (you move first) |
-| `python main.py --tree-depth N` | Same, but prints only the first N levels of the tree in the console (the saved file keeps the full tree) |
-| `python main.py --boards` | Same, but prints the board under every leaf of the tree |
+| `python main.py` | Console game. Asks for K, then you play (you move first). Prints the tree with leaf boards by default |
+| `python main.py --tree-depth N` | Same, but prints only the first N levels of the tree in the console (recommended for K >= 5 to shorten console output; the saved file keeps the full tree) |
+| `python main.py --no-boards` | Same, but hides the board under every leaf of the tree |
 | `python gui.py` | Pygame GUI with a start screen for K |
 | `python experiments.py` | Time and nodes vs. K = 1..6 (without pruning up to K = 5). Writes CSVs and charts to `results/` (a few minutes) |
 | `python compare.py 2 3 4` | Heuristic tournament `h1` to `h4`, one run per K given. Writes `results/comparison.csv` and `results/comparison_summary.csv` (a few minutes; it saves after each K) |
@@ -154,7 +154,7 @@ per K (from `results/comparison_summary.csv`):
 - Columns are 0-based in code and shown as 1 to 7 to the user.
 - Heuristics have the signature `h(board, me) -> int` (bigger is better for `me`).
 - `choose_move(board, K, use_pruning=True, print_tree=True, heuristic=None,
-  player=COMPUTER, tree_depth=None, show_boards=False)` returns
+  player=COMPUTER, tree_depth=None, show_boards=True)` returns
   `(column, stats)` with `stats = {"nodes", "time", "value", "pruned", "root"}`.
   `pruned` and `root` are `None` when `print_tree=False`, because no tree is
   built in that case.

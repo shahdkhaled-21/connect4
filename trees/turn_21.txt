@@ -1,2 +1,0 @@
-[MAX] root                                  a=8000 b=+inf         value=8000
-  [FINAL] col=2 (comp)                      a=-inf b=+inf         score=8000
